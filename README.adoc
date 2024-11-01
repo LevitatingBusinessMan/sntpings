@@ -1,0 +1,29 @@
+= https://github.com/LevitatingBusinessMan/sntpings[sntpings]
+
+Dit is mijn rust progamma voor https://pings.utwente.io/[SNTPings].
+
+Om te gebruiken:
+
+```SH
+git clone https://github.com/LevitatingBusinessMan/sntpings.git
+cd sntpings
+cargo build --release
+./target/release/sntpings --help
+```
+
+Je moet de binary met root rechten uitvoeren (omdat hij gebruik maakt van raw sockets).
+Je kan ook de `cap+net_raw` capability toevoegen:
+```SH
+sudo setcap cap_net_raw+ep target/release/sntpings
+```
+
+```
+Job     Group   CPU     State   Command
+26      64038   100%    running ./target/release/sntpings --file ./sbzproeverij.png --transparent -q
+25      61418   100%    running ./target/release/sntpings --file ./dasmooi.png --scale-x 100 --scale-y 100 -x 1300 -y 100 -q --transparent
+24      61085   100%    running ./target/release/sntpings --file ./maanmannetje.png --scale-x 250 --scale-y 100 -x 1300 -y 0 -q
+23      59490   100%    running ./target/release/sntpings --file ./pollo.jpg --shuffle -y 530 --scale-x 400 --scale-y 250 -q
+22      58663   100%    running ./target/release/sntpings --file ./novi-small.png --scale-x 200 --scale-y 200 -x 900 -y 800 --transparent -q --huerotatespeed 30
+19      54566   100%    running ./target/release/sntpings --file ./tux.png --scale-x 80 --scale-y 80 -x 1560 -y 1000 --huerotatespeed 30 --transparent -q
+18      49128   99%     running ./target/release/sntpings --file ./printscilla.png -q --transparent
+```

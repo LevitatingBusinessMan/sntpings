@@ -35,6 +35,10 @@ struct Args {
     quiet: bool,
     #[arg(short, long, help="ping this image once every x seconds")]
     timeout: Option<u64>,
+    #[arg(long, default_value="false", help="don't send translucent pixels")]
+    transparent: bool,
+    #[arg(long, help="how many degrees to rotate hue by every 5 seconds")]
+    huerotatespeed: Option<i32>
 }
 
 static DESTADDR: (u16, u16, u16, u16) = (0x2001, 0x610, 0x1908, 0xa000);
@@ -49,7 +53,7 @@ fn craftaddr(x: u16, y: u16, r: u8, g: u8, b: u8) -> IpAddr {
         x,
         y,
         ((b as u16) << 8) | g as u16,
-        ((r as u16) << 8) | 0,
+        ((r as u16) << 8) | 0xff,
     ))
 }
 
@@ -95,16 +99,24 @@ fn main() -> anyhow::Result<()> {
     let mut timeouttimer = Instant::now();
     let timeout = args.timeout.map(|t| Duration::new(t,0));
 
+    let mut huetimer = Instant::now();
+    let huerotatetimeout = Duration::new(5, 0);
+
     let mut count_total = 0;
     let mut countpks = 0;
     let mut errors_total = 0;
     let mut errorspks = 0;
 
-    //let mut pixels: Vec<(u32, u32, Rgba<u8>)> = image.pixels().filter(|(_,_,Rgba([_,_,_,a]))| *a != 0xff).collect();
-    let mut pixels: Vec<(u32, u32, Rgba<u8>)> = image.pixels().collect();
+    let ogimage = image.clone();
+
+    let mut pixels: Vec<(u32, u32, Rgba<u8>)> = image.pixels().filter(
+        |(_,_,Rgba([_,_,_,a]))| !args.transparent || *a == 0xff
+    ).collect();
     if args.shuffle {
         pixels.shuffle(&mut rand::thread_rng());
     }
+
+    let mut hue = 0;
 
     loop {
         if let Some(timeout) = timeout {
@@ -114,6 +126,18 @@ fn main() -> anyhow::Result<()> {
             } else {
                 std::thread::sleep(Duration::new(1,0));
                 continue;
+            }
+        }
+        if let Some(huerotatespeed) = args.huerotatespeed {
+            if huetimer.elapsed() > huerotatetimeout {
+                huetimer = Instant::now();
+                hue = (hue + huerotatespeed) % 360;
+                if !args.quiet { println!("rotating hue by {huerotatespeed}: {hue}") }
+                image = ogimage.huerotate(hue);
+                pixels = image.pixels().filter(
+                    |(_,_,Rgba([_,_,_,a]))| !args.transparent || *a == 0xff
+                ).collect();
+                if args.shuffle { pixels.shuffle(&mut rand::thread_rng()) }
             }
         }
         for (x, y, Rgba([r, g, b, _a])) in &pixels {
