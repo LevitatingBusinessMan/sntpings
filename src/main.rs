@@ -23,7 +23,7 @@ struct Args {
     x: u16,
     #[arg(short, long, default_value="0", help="y offset")]
     y: u16, 
-    #[arg(short, long, default_value="false", help="only print once")]
+    #[arg(short, long, help="only print once")]
     once: bool,
     #[arg(long, requires="scale_y")]
     scale_x: Option<u32>,
@@ -31,11 +31,11 @@ struct Args {
     scale_y: Option<u32>,
     #[arg(long, default_value="true", help="shuffle pixel order")]
     shuffle: bool,
-    #[arg(short, long, default_value="false", help="don't print anything")]
+    #[arg(short, long, help="don't print anything")]
     quiet: bool,
     #[arg(short, long, help="ping this image once every x seconds")]
     timeout: Option<u64>,
-    #[arg(long, default_value="false", help="don't send translucent pixels")]
+    #[arg(long, help="don't send translucent pixels")]
     transparent: bool,
     #[arg(long, help="how many degrees to rotate hue by every 5 seconds")]
     huerotatespeed: Option<i32>
