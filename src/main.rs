@@ -8,6 +8,11 @@ use rand::seq::SliceRandom;
 
 static SNT_ASCII: &'static str = include_str!("snt.asc");
 
+// center
+// randomize location
+// multithreading
+// rotation
+
 #[derive(clap::Parser)]
 struct Args {
     #[arg(short, long, help="image file to ping")]
@@ -26,6 +31,10 @@ struct Args {
     scale_y: Option<u32>,
     #[arg(long, default_value="true", help="shuffle pixel order")]
     shuffle: bool,
+    #[arg(short, long, default_value="false", help="don't print anything")]
+    quiet: bool,
+    #[arg(short, long, help="ping this image once every x seconds")]
+    timeout: Option<u64>,
 }
 
 static DESTADDR: (u16, u16, u16, u16) = (0x2001, 0x610, 0x1908, 0xa000);
@@ -51,11 +60,10 @@ fn craftaddr(x: u16, y: u16, r: u8, g: u8, b: u8) -> IpAddr {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    println!("{SNT_ASCII}");
+    //if !args.quiet { println!("{SNT_ASCII}") }
     let mut image = image::open(args.file)?;
 
     if args.scale_x.is_some() {
-        println!("Resizing to {} by {}", args.scale_x.unwrap(), args.scale_y.unwrap());
         image = image.resize_exact(
             args.scale_x.unwrap(),
             args.scale_y.unwrap(),
@@ -81,32 +89,42 @@ fn main() -> anyhow::Result<()> {
     echoreq.set_checksum(checksum);
     let echoreq = echoreq.consume_to_immutable();
 
-    let mut timer = Instant::now();
+    let mut stattimer = Instant::now();
     let interval = Duration::new(args.interval, 0);
+
+    let mut timeouttimer = Instant::now();
+    let timeout = args.timeout.map(|t| Duration::new(t,0));
 
     let mut count_total = 0;
     let mut countpks = 0;
     let mut errors_total = 0;
     let mut errorspks = 0;
 
+    //let mut pixels: Vec<(u32, u32, Rgba<u8>)> = image.pixels().filter(|(_,_,Rgba([_,_,_,a]))| *a != 0xff).collect();
     let mut pixels: Vec<(u32, u32, Rgba<u8>)> = image.pixels().collect();
     if args.shuffle {
         pixels.shuffle(&mut rand::thread_rng());
     }
-    
-    loop {
-        for (x, y, Rgba([r, g, b, a])) in &pixels {
-            if *a < 0xff {
 
+    loop {
+        if let Some(timeout) = timeout {
+            if timeouttimer.elapsed() > timeout {
+                if !args.quiet { println!("Done sleeping") }
+                timeouttimer = Instant::now();
+            } else {
+                std::thread::sleep(Duration::new(1,0));
+                continue;
             }
+        }
+        for (x, y, Rgba([r, g, b, _a])) in &pixels {
             if let Err(_) = tx.send_to(&echoreq, craftaddr(args.x + *x as u16, args.y + *y as u16 , *r, *g, *b)) {
                 errors_total += 1;
                 errorspks += 1;
             }
             countpks += 1;
             count_total += 1;
-            if timer.elapsed() > interval {
-                timer = Instant::now();
+            if stattimer.elapsed() > interval && !args.quiet {
+                stattimer = Instant::now();
                 println!("{countpks}pks {errorspks}eps ({:02.0}%) {count_total} packets {errors_total} errors", 100.0 * errorspks as f64 / countpks as f64);
                 errorspks = 0;
                 countpks = 0;
