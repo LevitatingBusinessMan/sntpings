@@ -29,8 +29,8 @@ struct Args {
     scale_x: Option<u32>,
     #[arg(long, requires="scale_x")]
     scale_y: Option<u32>,
-    #[arg(long, default_value="true", help="shuffle pixel order")]
-    shuffle: bool,
+    #[arg(long, help="don't shuffle pixel order")]
+    no_shuffle: bool,
     #[arg(short, long, help="don't print anything")]
     quiet: bool,
     #[arg(short, long, help="ping this image once every x seconds")]
@@ -112,7 +112,7 @@ fn main() -> anyhow::Result<()> {
     let mut pixels: Vec<(u32, u32, Rgba<u8>)> = image.pixels().filter(
         |(_,_,Rgba([_,_,_,a]))| !args.transparent || *a == 0xff
     ).collect();
-    if args.shuffle {
+    if !args.no_shuffle {
         pixels.shuffle(&mut rand::thread_rng());
     }
 
@@ -137,7 +137,7 @@ fn main() -> anyhow::Result<()> {
                 pixels = image.pixels().filter(
                     |(_,_,Rgba([_,_,_,a]))| !args.transparent || *a == 0xff
                 ).collect();
-                if args.shuffle { pixels.shuffle(&mut rand::thread_rng()) }
+                if !args.no_shuffle { pixels.shuffle(&mut rand::thread_rng()) }
             }
         }
         for (x, y, Rgba([r, g, b, _a])) in &pixels {
