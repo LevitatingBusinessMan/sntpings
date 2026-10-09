@@ -41,7 +41,7 @@ struct Args {
     huerotatespeed: Option<i32>
 }
 
-static DESTADDR: (u16, u16, u16, u16) = (0x2001, 0x0db8, 0xb317, 0xa000);
+static DESTADDR: (u16, u16, u16, u16) = (0x2001, 0x0610, 0x05ea, 0x221e);
 
 #[inline]
 fn craftaddr(x: u16, y: u16, r: u8, g: u8, b: u8) -> IpAddr {
